@@ -382,6 +382,23 @@ class StatefulDetectorHandler(
         """
         return []
 
+    def build_occurrence_fingerprint(
+        self, group_key: DetectorGroupKey = None, activation_id: UUID | None = None
+    ) -> list[str]:
+        """
+        The complete fingerprint for this detector's occurrences and status changes.
+
+        The firing occurrence and the resolution that closes it are both built from this,
+        so an override has to return the same value for the life of an activation or the
+        issue it opened can never be resolved.
+
+        Handlers that set `new_group_per_activation` must build from `activation_id`.
+        """
+        return [
+            *self.build_issue_fingerprint(group_key),
+            self.state_manager.build_key(group_key),
+        ]
+
     def build_detector_evidence_data(
         self,
         group_evaluation: DataConditionGroupEvaluation,
@@ -473,6 +490,7 @@ class StatefulDetectorHandler(
                 detector_trigger_evaluation,
                 data_packet,
                 data_value,
+                activation_id,
             )
 
         self.state_manager.commit_state_updates()
@@ -484,11 +502,9 @@ class StatefulDetectorHandler(
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
         group_key: DetectorGroupKey = None,
+        activation_id: UUID | None = None,
     ) -> StatusChangeMessage:
-        fingerprint = [
-            *self.build_issue_fingerprint(),
-            self.state_manager.build_key(group_key),
-        ]
+        fingerprint = self.build_occurrence_fingerprint(group_key, activation_id)
 
         workflow_engine_evidence_data = self._build_workflow_engine_evidence_data(
             group_evaluation,
@@ -521,6 +537,7 @@ class StatefulDetectorHandler(
         group_evaluation: DataConditionGroupEvaluation,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
+        activation_id: UUID | None = None,
     ) -> DetectorEvaluation:
         detector_result: IssueOccurrence | StatusChangeMessage
         event_data: EventData | None = None
@@ -532,6 +549,7 @@ class StatefulDetectorHandler(
                 data_packet,
                 evaluation_value,
                 group_key,
+                activation_id,
             )
         else:
             # Call the `create_occurrence` method to create the detector occurrence.
@@ -545,6 +563,7 @@ class StatefulDetectorHandler(
                 new_priority,
                 group_key,
                 evaluation_value,
+                activation_id,
             )
 
             # Set the event data with the necessary fields
@@ -579,6 +598,7 @@ class StatefulDetectorHandler(
         new_priority: DetectorPriorityLevel,
         group_key: DetectorGroupKey,
         data_value: DataPacketEvaluationType,
+        activation_id: UUID | None = None,
     ) -> IssueOccurrence:
         """
         Decorate the issue occurrence with the data from the detector's evaluation result.
@@ -589,10 +609,7 @@ class StatefulDetectorHandler(
             data_value,
         )
 
-        fingerprint = [
-            *self.build_issue_fingerprint(group_key),
-            self.state_manager.build_key(group_key),
-        ]
+        fingerprint = self.build_occurrence_fingerprint(group_key, activation_id)
 
         occurrence_id = str(uuid4())
 
