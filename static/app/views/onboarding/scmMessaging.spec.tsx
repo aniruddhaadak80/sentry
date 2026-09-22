@@ -1085,9 +1085,7 @@ describe('ScmMessaging', () => {
       expect(screen.getByText('msteams')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
 
-      await userEvent.click(
-        screen.getByRole('button', {name: /Choose destination for slack/})
-      );
+      await userEvent.click(screen.getByRole('button', {name: /Set up slack/}));
 
       // Only slack row visible; footer gone.
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
@@ -1138,9 +1136,7 @@ describe('ScmMessaging', () => {
       );
 
       expect(await screen.findByText('discord')).toBeInTheDocument();
-      await userEvent.click(
-        screen.getByRole('button', {name: /Choose destination for slack/})
-      );
+      await userEvent.click(screen.getByRole('button', {name: /Set up slack/}));
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Set up later'})
@@ -1192,9 +1188,7 @@ describe('ScmMessaging', () => {
       // Wait for provider rows to load before interacting.
       expect(await screen.findByText('discord')).toBeInTheDocument();
 
-      await userEvent.click(
-        screen.getByRole('button', {name: /Choose destination for slack/})
-      );
+      await userEvent.click(screen.getByRole('button', {name: /Set up slack/}));
       await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
       await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
