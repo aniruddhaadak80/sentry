@@ -59,6 +59,7 @@ import {
   DEPLOYMENT_TARGET_ICONS,
   DEPLOYMENT_TARGET_LABELS,
   DeploymentTarget,
+  getDefaultAgentIntegration,
   getIntegrationDeploymentTarget,
   NODE_AGENT_INTEGRATIONS,
   PHP_AGENT_INTEGRATIONS,
@@ -292,6 +293,7 @@ export function Onboarding() {
   const platformOptions: BasePlatformOptions = {
     integration: {
       label: t('Integration'),
+      defaultValue: getDefaultAgentIntegration(project?.platform),
       items: integrations.map(integration => ({
         label: isPhpPlatform
           ? (currentPlatform?.name ?? t('Laravel'))
