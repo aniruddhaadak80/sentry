@@ -1,0 +1,36 @@
+import {useState} from 'react';
+
+import {useDrawer} from '@sentry/scraps/drawer';
+
+import {DroppedDataDrawer} from 'sentry/components/droppedData/droppedDataDrawer';
+import {useHasDroppedDataAnnotations} from 'sentry/components/droppedData/useHasDroppedDataAnnotations';
+import type {DroppedData} from 'sentry/components/droppedData/utils';
+import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+
+export function useDroppedData(meta: EventsTimeSeriesResponse['meta']) {
+  const hasAnnotations = useHasDroppedDataAnnotations();
+  const {openDrawer} = useDrawer();
+  const [showDroppedData, setShowDroppedData] = useState(true);
+
+  const dropped = hasAnnotations ? meta?.droppedAnnotations : undefined;
+  const accepted = hasAnnotations ? meta?.acceptedAnnotations : undefined;
+
+  const chartProps: DroppedData = {
+    dropped,
+    accepted,
+    visible: showDroppedData,
+    onClick: () =>
+      openDrawer(() => <DroppedDataDrawer />, {
+        ariaLabel: t('Dropped Data'),
+      }),
+  };
+
+  return {
+    chartProps,
+    hasDroppedData: defined(dropped) && dropped.length > 0,
+    showDroppedData,
+    setShowDroppedData,
+  };
+}

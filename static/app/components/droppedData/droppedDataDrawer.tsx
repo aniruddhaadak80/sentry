@@ -5,7 +5,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 
-export function DroppedDataPanelContent() {
+export function DroppedDataDrawer() {
   return (
     <Fragment>
       <DrawerHeader>
