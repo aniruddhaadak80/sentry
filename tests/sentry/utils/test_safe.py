@@ -9,11 +9,13 @@ import pytest
 
 from sentry.testutils.cases import TestCase
 from sentry.utils.safe import (
+    get_json_bytes,
     get_path,
     safe_execute,
     safe_urlencode,
     set_path,
     setdefault_path,
+    strict_trim,
     trim,
 )
 
@@ -61,6 +63,152 @@ class TrimTest(unittest.TestCase):
 
         a = {"a": {"b": {"c": []}}}
         assert trm(a) == {"a": {"b": {"c": "[]"}}}
+
+
+class StrictTrimTest(unittest.TestCase):
+    def test_leaves_values_which_already_fit_alone(self) -> None:
+        limit = 100
+
+        for orig in (
+            {"dog": "maisey"},
+            ["maisey", "charlie"],
+            ("maisey", "charlie"),
+            "maisey",
+            13,
+            None,
+        ):
+            # This value does indeed fit under the limit
+            assert get_json_bytes(orig) < limit
+
+            trimmed = strict_trim(orig, max_bytes=limit)
+            assert trimmed == orig
+
+    def test_trims_dicts_to_fit(self) -> None:
+        limit = 200
+        orig = {f"dog_{i}": "very good" for i in range(100)}
+
+        trimmed = strict_trim(orig, max_bytes=limit)
+
+        for i in range(10):
+            assert f"dog_{i}" in trimmed
+        for i in range(10, 100):
+            assert f"dog_{i}" not in trimmed
+
+        assert get_json_bytes(trimmed) <= limit
+        assert 0 < len(trimmed) < len(orig)
+
+    def test_trims_lists_to_fit(self) -> None:
+        limit = 200
+        orig = [f"dog_{i}" for i in range(100)]
+
+        trimmed = strict_trim(orig, max_bytes=limit)
+
+        assert get_json_bytes(orig) > limit
+        assert get_json_bytes(trimmed) <= limit
+        assert len(trimmed) < len(orig)
+
+    def test_keeps_tuples_as_tuples(self) -> None:
+        limit = 200
+        orig = ("adopt", "don't shop") * 100
+
+        trimmed = strict_trim(orig, max_bytes=limit)
+
+        assert isinstance(orig, tuple)
+        assert isinstance(trimmed, tuple)
+        assert get_json_bytes(orig) > limit
+        assert get_json_bytes(trimmed) <= limit
+
+    def test_keeps_or_removes_but_does_not_trim_non_string_constants(self) -> None:
+        # Numbers, booleans and `None` have no JSON representation shorter than their full one, so
+        # they're either kept whole or dropped.
+        limit = 75
+        orig = {
+            "id": 1121121231124151390813,
+            "num_dogs": 2,
+            "dogs_are_great": True,
+            "bad_dogs": None,
+        }
+        orig_w_shorter_id = {**orig, "id": 1121}
+
+        trimmed = strict_trim(orig, max_bytes=limit)
+        trimmed_shorter_int = strict_trim(orig_w_shorter_id, max_bytes=limit)
+
+        assert trimmed != orig
+        assert trimmed_shorter_int == orig_w_shorter_id
+
+        # The `id` entry was removed rather than trimmed, even though trimming it would have made it
+        # fit under the limit
+        assert "id" in trimmed_shorter_int
+        assert "id" not in trimmed
+
+        assert get_json_bytes(orig) > limit
+        assert get_json_bytes(trimmed) <= limit
+
+    def test_stringifies_values_nested_deeper_than_the_max_depth(self) -> None:
+        limit = 100
+        orig = {"dogs": {"are": {"great": {"co_best_dogs": ["maisey", "charlie"]}}}}
+
+        trimmed = strict_trim(orig, max_bytes=limit, max_recursion_depth=2)
+
+        assert trimmed == {"dogs": {"are": {"great": '{"co_best_dogs":["maisey","charlie"]}'}}}
+
+    def test_handles_budgets_too_small_to_use(self) -> None:
+        # `{}` is itself two bytes, so there's no budget at which a dict can be represented but
+        # not trimmed to empty
+        assert strict_trim({"dog": "maisey"}, max_bytes=5) == {}
+        assert strict_trim("maisey", max_bytes=5) == "..."
+        assert strict_trim("maisey", max_bytes=4) == ""
+
+    def test_accounts_for_dict_keys(self) -> None:
+        limit = 40
+        orig = {
+            "dogs" * 50: "are great",
+            "adopt" * 50: "don't shop",
+            "best_dogs": ["maisey", "charlie"],
+        }
+
+        un_strict_trimmed = trim(orig, max_size=limit)
+        strict_trimmed = strict_trim(orig, max_bytes=limit)
+
+        # `trim` only accounts for a dict's values, not its keys, so it has no effect on `orig`,
+        # even though it's more than 10x bigger than the limit
+        assert un_strict_trimmed == orig
+        assert get_json_bytes(un_strict_trimmed) > limit * 10
+
+        # Strict trimming accounts for this, and only keeps the entry with the short key
+        assert strict_trimmed == {"best_dogs": ["maisey", "charlie"]}
+        assert get_json_bytes(strict_trimmed) <= limit
+
+    def test_never_exceeds_the_limit(self) -> None:
+        limit = 75
+        orig = {
+            "dogs": " ".join(["are great"] * 100),
+            "adopt" * 50: " ".join(["don't shop"] * 50),
+            "best_dogs": ["maisey", "charlie"],
+        }
+
+        un_strict_trimmed = trim(orig, max_size=limit)
+        strict_trimmed = strict_trim(orig, max_bytes=limit)
+
+        # The `adopt: don't shop` entry is what puts the trimmed result over the edge, but `trim`
+        # includes it anyway, whereas when `strict_trim` does not
+        assert set(un_strict_trimmed.keys()) == {"best_dogs", "adopt" * 50}
+        assert set(strict_trimmed.keys()) == {"best_dogs"}
+
+        assert get_json_bytes(un_strict_trimmed) > limit * 4
+        assert get_json_bytes(strict_trimmed) <= limit
+
+    def test_measures_jsonified_size_instead_of_string_length(self) -> None:
+        limit = 50
+        orig = {"trick": " ".join(["𝜌ll over"] * 100)}
+
+        un_strict_trimmed = trim(orig, max_size=limit)
+        strict_trimmed = strict_trim(orig, max_bytes=limit)
+
+        # Every '𝜌' (rho) in `orig`'s `trick` value becomes `\\ud835\\udf0c` when JSONified, but
+        # `trim` still only counts it as 1 character, making the final result way too big
+        assert get_json_bytes(un_strict_trimmed) > limit * 2
+        assert get_json_bytes(strict_trimmed) <= limit
 
 
 class SafeExecuteTest(TestCase):
