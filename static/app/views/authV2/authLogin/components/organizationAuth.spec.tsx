@@ -29,7 +29,7 @@ describe('OrganizationAuth', () => {
     render(<OrganizationAuth authOrganization={authOrganization} onClear={onClear} />);
 
     expect(screen.getByText('Acme')).toBeInTheDocument();
-    expect(screen.getByText('Members log in with SAML')).toBeInTheDocument();
+    expect(screen.getByText('Members sign in with SAML')).toBeInTheDocument();
     const ssoButton = screen.getByRole('button', {name: 'SSO'});
     const ssoForm = ssoButton.closest('form')!;
     expect(ssoButton).toBeInTheDocument();
@@ -38,7 +38,7 @@ describe('OrganizationAuth', () => {
       '/join-request/acme/'
     );
     expect(ssoForm).toHaveAttribute('method', 'POST');
-    expect(ssoForm).toHaveFormValues({init: '1'});
+    expect(ssoForm.querySelector('input[name="init"]')).toHaveValue('1');
 
     ssoForm.addEventListener('submit', event => event.preventDefault());
     await userEvent.click(ssoButton);

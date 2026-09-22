@@ -109,6 +109,7 @@ def exceptions_section(model: EventObject, limits: Limits) -> Section | None:
 
     return Section(
         title="Exception",
+        repeating=True,
         groups=tuple(groups),
         max_group_chars=limits.max_exceptions_chars,
     )
@@ -267,7 +268,7 @@ def threads_section(model: EventObject, limits: Limits) -> Section | None:
 
     if not groups:
         return None
-    return Section(title="Threads", groups=tuple(groups))
+    return Section(title="Threads", repeating=True, groups=tuple(groups))
 
 
 def spans_section(model: EventObject, limits: Limits) -> Section | None:
@@ -285,6 +286,14 @@ def spans_section(model: EventObject, limits: Limits) -> Section | None:
         title="Span Evidence",
         groups=(Group(items=tuple(lines), max_chars=limits.max_spans_chars),),
     )
+
+
+def metric_alert_section(model: EventObject, limits: Limits) -> Section | None:
+    # the query a metric issue fired on; evidence_section only names the metric
+    if not model.metric_alert:
+        return None
+    items = tuple(Field(label, value) for label, value in model.metric_alert)
+    return Section(title="Metric Alert Details", groups=(Group(items=items),))
 
 
 def evidence_section(model: EventObject, limits: Limits) -> Section | None:
@@ -313,6 +322,7 @@ def contexts_section(model: EventObject, limits: Limits) -> Section | None:
         return None
     return Section(
         title="Contexts",
+        repeating=True,
         groups=tuple(groups),
         max_chars=limits.max_contexts_chars,
     )
@@ -330,6 +340,7 @@ EVENT_SECTIONS_WITH_USER: list[SectionFn] = [
     csp_section,
     threads_section,
     spans_section,
+    metric_alert_section,
     evidence_section,
     breadcrumbs_section,
     request_section,

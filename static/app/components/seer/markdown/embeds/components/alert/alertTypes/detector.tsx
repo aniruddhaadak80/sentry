@@ -2,7 +2,7 @@ import type {ComponentType} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -15,6 +15,7 @@ import {CronMonitor} from 'sentry/components/seer/markdown/embeds/components/mon
 import {MetricMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/metric';
 import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/uptime';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconClock, IconGlobe, IconGraph, IconSiren} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -247,37 +248,30 @@ export function DetectorAlertBlock(props: EmbedOutput<'alert'>) {
   const Icon = getDetectorAlertIcon(kind as DetectorAlertKind);
 
   return (
-    <Container
-      background="primary"
-      border="primary"
-      containerType="inline-size"
-      padding="md"
-      radius="md"
+    <SeerEmbedBlock
+      badge={
+        detector ? (
+          <Tag variant={detector.enabled ? 'success' : 'muted'}>
+            {t(
+              '%s - %s',
+              getDetectorAlertLabel(kind as DetectorAlertKind),
+              detector.enabled ? t('Enabled') : t('Disabled')
+            )}
+          </Tag>
+        ) : null
+      }
+      href={href}
+      icon={Icon}
+      linkLabel={t('View Alert')}
+      testId="seer-alert-embed"
+      title={detector?.name ?? name ?? t('Alert %s', id)}
     >
-      <Stack gap="md">
-        <Flex align="center" justify="between" gap="md" wrap="wrap">
-          <ResourceLink
-            icon={Icon}
-            href={href}
-            title={detector?.name ?? name ?? t('Alert %s', id)}
-          />
-          {detector ? (
-            <Tag variant={detector.enabled ? 'success' : 'muted'}>
-              {t(
-                '%s - %s',
-                getDetectorAlertLabel(kind as DetectorAlertKind),
-                detector.enabled ? t('Enabled') : t('Disabled')
-              )}
-            </Tag>
-          ) : null}
-        </Flex>
-        <DetectorAlertBody
-          detector={detector}
-          hasDetectorId={Boolean(detectorId)}
-          isError={isError}
-          isPending={isResolving || (Boolean(detectorId) && isPending)}
-        />
-      </Stack>
-    </Container>
+      <DetectorAlertBody
+        detector={detector}
+        hasDetectorId={Boolean(detectorId)}
+        isError={isError}
+        isPending={isResolving || (Boolean(detectorId) && isPending)}
+      />
+    </SeerEmbedBlock>
   );
 }
