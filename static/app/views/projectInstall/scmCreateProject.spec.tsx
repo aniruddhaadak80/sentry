@@ -388,7 +388,7 @@ describe('ScmCreateProject', () => {
 
     // Framework SDKs commit straight from the picker; a base language (plain
     // Python) would detour through the framework-suggestion modal.
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
@@ -697,7 +697,7 @@ describe('ScmCreateProject', () => {
     renderGlobalModal();
     const {router} = render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Python');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
@@ -770,7 +770,7 @@ describe('ScmCreateProject', () => {
 
     render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
@@ -897,7 +897,7 @@ describe('ScmCreateProject', () => {
 
     render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
     await userEvent.click(screen.getByRole('button', {name: 'Alert frequency'}));
@@ -939,7 +939,7 @@ describe('ScmCreateProject', () => {
 
     render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
@@ -991,7 +991,7 @@ describe('ScmCreateProject', () => {
     });
     render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
@@ -1077,7 +1077,7 @@ describe('ScmCreateProject', () => {
     await userEvent.keyboard('sentry');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
-    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
       expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
     });
@@ -1129,7 +1129,7 @@ describe('ScmCreateProject', () => {
     await userEvent.keyboard('sentry');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
-    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
       expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
     });
@@ -1144,16 +1144,14 @@ describe('ScmCreateProject', () => {
     await userEvent.click(screen.getByText('sentry'));
     await userEvent.keyboard('{Backspace}');
 
-    expect(await screen.findByText('Search SDKs...')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('radio', {name: 'Python Language'})
-    ).not.toBeInTheDocument();
+    expect(await screen.findByText('Search')).toBeInTheDocument();
+    expect(screen.queryByRole('radio', {name: 'Python'})).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('');
     expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
-    await userEvent.click(screen.getByText('Search SDKs...'));
+    await userEvent.click(screen.getByText('Search'));
     await userEvent.keyboard('Python');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
